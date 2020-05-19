@@ -1,79 +1,51 @@
 <?php
 
-require_once(dirname(__FILE__) . '/../config.php');
+include_once('../config.php');
 
 include_once('../Model/User.php');
+include_once('../Model/Loop.php');
+include_once('../API/GetRequest.php');
+include_once('../API/APIEndpoints.php');
 
 class AccessLayer
 {
-  public $drivers = [];
-  public $stops = [];
-  public $loops = [];
-  public $buses = [];
-  public $Inspection_items = [];
+    private $baseUrl = "http://localhost/BusShuttleAPI/public";
 
-  public function __construct()
-  { }
+    public $token;
+
+  public function __construct($token)
+  {
+      $this->token = $token;
+  }
 
   public function dbconnect()
   {
     $conn = mysqli_connect(DB_HOST, DB_USER, DB_PASSWORD, DB_DBNAME)
-      or die("<br/>Coule not connect to MYSQL Server");
-
-    // mysqli_select_db($conn, DB_DBNAME)
-    //     or die("<br/>Could not select the indicated database");
+      or die("<br/>Could not connect to MYSQL Server");
 
     return $conn;
   }
 
-  // CUSTOM METHODS HERE
-
-  // Users
-  public function get_user_as_User_Object($id)
+  public function getDrivers()
   {
-    // Reuse existing query
-    $sql = "SELECT * FROM users WHERE id='$id'";
-    $results = $this->query($sql);
+    $results = json_decode(GetRequest::executeGetRequest($this->baseUrl, APIEndpoints::$DRIVERS, $this->token), 1)['data'];
 
-    // check for results
     if (!$results) {
-      return $results;
+      return null;
     } else {
-      // array to hold User objects
-      $object_results = array();
-      // cycle through and convert to User objects
-      foreach ($results as $result) {
-        $object_results[] = new User($result);
-      }
-      // return array of User objects
+        $object_results = array();
+        $count = 0;
+        foreach ($results as $user) {
+            $object_results[$count] = new User($user["id"], $user["first_name"], $user["last_name"]);
+            $count+=1;
+        }
       return $object_results;
     }
   }
 
-  public function get_all_users_as_User_Objects()
+  public function update_user($userID, $firstName, $lastName)
   {
-    // Reuse existing query
-    $sql = "SELECT * FROM users WHERE is_deleted='0' ORDER BY lastname ASC";
-    $results = $this->query($sql);
-
-    // check for results
-    if (!$results) {
-      return $results;
-    } else {
-      // array to hold User objects
-      $object_results = array();
-      // cycle through and convert to User objects
-      foreach ($results as $result) {
-        $object_results[] = new User($result);
-      }
-      // return array of User objects
-      return $object_results;
-    }
-  }
-
-  public function update_user($userID, $firstname, $lastname)
-  {
-    $sql = "UPDATE users SET firstname='$firstname', lastname='$lastname' WHERE id='$userID'";
+    $sql = "UPDATE users SET firstname='$firstName', lastname='$lastName' WHERE id='$userID'";
     $results = $this->query($sql);
   }
 
@@ -84,19 +56,28 @@ class AccessLayer
   }
 
   public function get_user_name($userID){
-    if(array_key_exists($userID,$this->drivers)) {
-      return $this->drivers[$userID];
+    $users = $this->getUsers();
+    if(array_key_exists($userID, $users)) {
+      return $users[$userID];
     }
-    $sql = sprintf("SELECT firstname,lastname FROM users WHERE id=$userID");
-    $this->drivers[$userID] = $this->query($sql);
-    return $this->drivers[$userID];
+    return null;
   }
 
-  // Loops
   public function get_loops()
   {
-    $sql = sprintf("SELECT * FROM loops WHERE is_deleted='0' ORDER BY loops ASC");
-    return $this->query($sql);
+      $results = json_decode(GetRequest::executeGetRequest($this->baseUrl, APIEndpoints::$LOOPS, $this->token), 1)['data'];
+
+      if (!$results) {
+          return null;
+      } else {
+          $object_results = array();
+          $count = 0;
+          foreach ($results as $loop) {
+              $object_results[$count] = new Loop($loop["id"], $loop["name"]);
+              $count += 1;
+          }
+          return $object_results;
+      }
   }
 
   public function add_loop($loopName)
@@ -136,11 +117,9 @@ class AccessLayer
     return $this->loops[$loopID];
   }
 
-  // Stops
   public function get_stops()
   {
-    $sql = sprintf("SELECT * FROM stops WHERE is_deleted='0' ORDER BY stops ASC");
-    return $this->query($sql);
+    return json_decode(GetRequest::executeGetRequest($this->baseUrl, APIEndpoints::$STOPS, $this->token), 1)['data'];
   }
 
   public function get_stops_by_loop($loopID){
@@ -162,7 +141,6 @@ class AccessLayer
     $sql = sprintf("UPDATE stop_loop SET is_deleted=1 WHERE `stop`='$stopID'");
     $this->query($sql);
   }
-
 
   public function restore_stop($stopID)
   {
@@ -187,11 +165,9 @@ class AccessLayer
     return $this->stops[$stopID];
   }
 
-  // Buses
   public function get_buses()
   {
-    $sql = sprintf("SELECT * FROM buses WHERE is_deleted='0' ORDER BY busIdentifier ASC");
-    return $this->query($sql);
+    return json_decode(GetRequest::executeGetRequest($this->baseUrl, APIEndpoints::$BUS_NUMBERS, $this->token), 1)['data'];
   }
 
   public function add_bus($busName)
@@ -212,16 +188,6 @@ class AccessLayer
     $results = $this->query($sql);
   }
 
-  public function get_bus_name($busID) {
-    if(array_key_exists($busID,$this->buses)) {
-      return $this->buses[$busID];
-    }
-    $sql = sprintf("SELECT busIdentifier FROM buses WHERE is_deleted='0' AND id=$busID");
-    $this->buses[$busID] = $this->query($sql);
-    return $this->buses[$busID];
-  }
-
-  //inspection_items_list
   public function get_inspection_items()
   {
     $sql = sprintf("SELECT * FROM inspection_items_list WHERE is_deleted='0' ORDER BY inspection_item_name ASC");
@@ -271,10 +237,6 @@ class AccessLayer
     $results = $this->query($sql); 
   }
 
-  
-  
-
-
   public function get_inspection_items_name($InspectionItemID) {
     if(array_key_exists($InspectionItemID,$this->Inspection_items)) {    
       return $this->Inspection_items[$InspectionItemID];
@@ -286,7 +248,6 @@ class AccessLayer
     return $this->Inspection_items[$InspectionItemID];
   }
 
-  // inspection reports
   public function get_inspection_reports_by_date_and_loopID($dateAdded, $loopID) {
     $sql = sprintf("SELECT * FROM `inspection_report` WHERE `date_added`='$dateAdded' AND `loop`= '$loopID'  ORDER BY `t_stamp` DESC");
     $aux_result = $this->query($sql);
@@ -322,16 +283,8 @@ class AccessLayer
     return $result;
   }
 
-  // Entries
   public function get_entries_by_date_and_loopID($dateAdded, $loopID) {
     $sql = sprintf("SELECT * FROM `entries` WHERE `date_added`='$dateAdded' AND `loop`= '$loopID'  ORDER BY `t_stamp` DESC");
-    $aux_result = $this->query($sql);
-    $result = $this->remove_duplicate_entries($aux_result); // ALTERNATIVE in PHP code
-    return $result;
-  }
-
-  public function get_entries_by_date($dateAdded) {
-    $sql = sprintf("SELECT * FROM `entries` WHERE `date_added`='$dateAdded' ORDER BY `t_stamp` DESC");
     $aux_result = $this->query($sql);
     $result = $this->remove_duplicate_entries($aux_result); // ALTERNATIVE in PHP code
     return $result;
@@ -369,13 +322,6 @@ class AccessLayer
     $this->query($sql);
   } 
 
-  // Will likely be wanted eventually so here it is. 
-  public function remove_entry($entryID) {
-    $sql = sprintf("UPDATE entries SET is_deleted='1' WHERE id='$entryID'");
-    $this->query($sql);
-  } 
-
-  // Routes
   public function get_distinct_loops_in_stoploop_and_loops($id) {
     $sql = sprintf("SELECT DISTINCT `loops`.`loops`, `stop_loop`.`loop`
     FROM `loops` 
@@ -415,46 +361,6 @@ class AccessLayer
     
   }
 
-
-  // END CUSTOM METHODS
-
-
-  // Turns each returned field name into a property of the QueryResult object. 
-  private function query($sql)
-  {
-
-    $this->dbconnect();
-
-    $conn = $this->dbconnect();
-
-    $res = mysqli_query($conn, $sql);
-
-    if ($res) {
-      if (strpos($sql, 'SELECT') === false) {
-        return true;
-      }
-    } else {
-      if (strpos($sql, 'SELECT') === false) {
-        return false;
-      } else {
-        return null;
-      }
-    }
-
-    $results = array();
-
-    while ($row = mysqli_fetch_array($res)) {
-
-      $result = new QueryResult();
-
-      foreach ($row as $k => $v) {
-        $result->$k = $v;
-      }
-
-      $results[] = $result;
-    }
-    return $results;
-  }
 }
 
 class QueryResult

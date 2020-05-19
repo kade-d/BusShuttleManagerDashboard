@@ -7,12 +7,5 @@ define ( 'DB_PASSWORD', '' );
 define ( 'DB_DBNAME', 'busdb' );
 
 // API
-define ( 'BASE_API_URL', 'http://localhost/BusShuttleAPI/api/' );
+define ( 'BASE_API_URL', 'http://localhost/BusShuttleAPI/public/' );
 
-// ULOGIN
-define ( 'UL_INC_DIR_GLOBAL', 'C:/xampp/htdocs/BusShuttleManagerDashboard/ulogin' );
-define ( 'UL_SITE_ROOT_DIR_GLOBAL', 'C:/xampp/htdocs');
-define ( 'UL_DOMAIN_GLOBAL', 'localhost');
-define ( 'UL_USES_HTTPS', false);
-
-?>

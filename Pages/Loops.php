@@ -1,26 +1,15 @@
 <?php
-require_once('../ulogin/config/all.inc.php');
-require_once('../ulogin/main.inc.php');
 
-if (!sses_running())
-	sses_start();
-
-function isAppLoggedIn(){
-	return isset($_SESSION['uid']) && isset($_SESSION['username']) && isset($_SESSION['loggedIn']) && ($_SESSION['loggedIn']===true);
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
 }
-
-if (!isAppLoggedIn()) {
-    header("Location: ../index.php"); /* Redirect browser */
-   exit();
-} 
 
 require_once(dirname(__FILE__) . '/../DataLink/AccessLayer.php');
 
 $_SESSION["Title"] = "Loops";
 
 $input = "";
-$results;
-
+$results = null;
 
 if (isset($_POST['SubmitButton'])) {
   $input = $_POST['inputText'];
@@ -32,7 +21,7 @@ if (isset($_POST['SubmitButton'])) {
 
 function makeList(&$results)
 {
-  $AccessLayer = new AccessLayer();
+  $AccessLayer = new AccessLayer($_SESSION['api_token']);
   $results = $AccessLayer->get_loops();
 }
 
@@ -73,7 +62,7 @@ require '../themepart/pageContentHolder.php';
         <div class="form-row align-items-center">
           <div class="col-auto">
             <label class="sr-only" for="inlineFormInput">Loop Name</label>
-            <input type="text" input="text" class="form-control mb-2" name='inputText' id="inlineFormInput" placeholder="enter loop name">
+            <input type="text" class="form-control mb-2" name='inputText' id="inlineFormInput" placeholder="enter loop name">
           </div>
           <div class="col-auto">
             <button type="submit" name="SubmitButton" class="btn btn-dark mb-2">Create</button>
@@ -91,7 +80,7 @@ require '../themepart/pageContentHolder.php';
       <tbody>
         <?php foreach ($results as $loop) : ?>
           <tr>
-            <td><?php echo $loop->loops; ?></td>
+            <td><?php echo $loop->loopName; ?></td>
             <td style="display:none;"><?php echo $loop->id; ?></td>
           </tr>
         <?php endforeach; ?>

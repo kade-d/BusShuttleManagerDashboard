@@ -2,35 +2,22 @@
 
 class User {
 
-    public $_id;
-    public $_firstname;
-    public $_lastname;
+    public $id;
+    public $firstName;
+    public $lastName;
 
-    public function __construct(QueryResult $result){
-        $this->_id = $result->id;
-        $this->_firstname = $result->firstname;
-        $this->_lastname = $result->lastname;
+    /**
+     * User constructor.
+     * @param $_id
+     * @param $firstName
+     * @param $lastName
+     */
+    public function __construct($_id, $firstName, $lastName)
+    {
+        $this->id = $_id;
+        $this->firstName = $firstName;
+        $this->lastName = $lastName;
     }
-
-    public function __get($var){
-        switch ($var) {
-            case 'id':
-                return $this->_id;
-                break;
-            case 'firstname':
-                return $this->_firstname;
-                break;
-            case 'lastname':
-                return $this->_lastname;
-            default:
-                return null;
-                break;
-        }
-    }
-
-    
 
 
 }
-
-?>

@@ -1,23 +1,13 @@
 <?php
-require_once('../ulogin/config/all.inc.php');
-require_once('../ulogin/main.inc.php');
 
-if (!sses_running())
-	sses_start();
-
-
-function isAppLoggedIn(){
-	return isset($_SESSION['uid']) && isset($_SESSION['username']) && isset($_SESSION['loggedIn']) && ($_SESSION['loggedIn']===true);
-}
-
-if (!isAppLoggedIn()) {
-    header("Location: ../index.php"); /* Redirect browser */
-   exit();
-} 
 require ('../Model/User.php');
 
 require_once(dirname(__FILE__) . '/../config.php');
 require_once(dirname(__FILE__) . '/../DataLink/AccessLayer.php');
+
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
 
 $_SESSION["Title"]="Drivers";
 
@@ -26,20 +16,19 @@ $firstName = "";
 $lastName = "";
 
 function makeList(&$userNames) {
-    $AccessLayer = new AccessLayer();
+    $AccessLayer = new AccessLayer($_SESSION["api_token"]);
 
-    $results = $AccessLayer->get_all_users_as_User_Objects();
-
-    if ($results){
+    $results = $AccessLayer->getDrivers();
+    if($results){
         foreach ($results as $user) {
             array_push($userNames, $user);
-       }
-    } 
+        }
+    }
 }
 ?>
-
 <html>
 <head>
+
     <?php
   require '../themepart/resources.php';
   require '../themepart/sidebar.php';
@@ -91,8 +80,8 @@ function makeList(&$userNames) {
             <?php foreach ($userNames as $log): ?>
             <tr>
                 <td style="display:none;"><?php echo "$log->id"; ?></td>
-                <td><?php echo "$log->firstname"; ?></td>
-                <td><?php echo "$log->lastname"; ?></td>
+                <td><?php echo "$log->firstName"; ?></td>
+                <td><?php echo "$log->lastName"; ?></td>
             </tr>
             <?php endforeach; ?>
         </tbody>
@@ -125,11 +114,13 @@ $(document).on('submit', '#form', function() {
 
     var form = $(this);
     var form_data = JSON.stringify(form.serializeObject());
+    var token = JSON.stringify($)
 
     $.ajax({
-        url: '<?php echo BASE_API_URL;?>create_user.php',
+        url: '<?php echo BASE_API_URL;?>/api/drivers',
         type: "POST",
         contentType: 'application/json',
+        header:
         data: form_data,
         success: function(result) {
             $('#response').html(
@@ -138,6 +129,7 @@ $(document).on('submit', '#form', function() {
         },
         error: function(xhr, resp, text) {
             $('#response').html(
+                resp + text +
                 "<div class='alert alert-danger'>Unable to create driver. Please try again or contact an administrator.</div>"
                 );
         }

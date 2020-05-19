@@ -1,34 +1,21 @@
 <?php
-require_once('../ulogin/config/all.inc.php');
-require_once('../ulogin/main.inc.php');
-
-if (!sses_running())
-	sses_start();
-
-function isAppLoggedIn(){
-	return isset($_SESSION['uid']) && isset($_SESSION['username']) && isset($_SESSION['loggedIn']) && ($_SESSION['loggedIn']===true);
-}
-
-if (!isAppLoggedIn()) {
-    header("Location: ../index.php"); /* Redirect browser */
-   exit();
-} 
-require '../Database/connect.php';
 
 require_once(dirname(__FILE__) . '/../DataLink/AccessLayer.php');
+
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
 
 $_SESSION["Title"] = "Entries in the Database";
 
 
-$entries;
+$entries = null;
 $input = "";
 $loopDropdown = array();
 $loop = "";
 $buttonState = "disabled";
-
-
-$AccessLayer = new AccessLayer();
-$loopDropdown = $AccessLayer->get_loops();
+$accessLayer = new AccessLayer($_SESSION['api_token']);
+$loopDropdown = $accessLayer->get_loops();
 
 
 // If Submit is Clicked
@@ -46,30 +33,22 @@ if (isset($_POST['SubmitButton'])) {
 
 function makeList(&$entries, $date, $loopID)
 {
-    $AccessLayer = new AccessLayer();
-    $entries = $AccessLayer->get_entries_by_date_and_loopID($date, $loopID);
+    $accessLayer = new AccessLayer($_SESSION['api_token']);
+    $entries = $accessLayer->get_entries_by_date_and_loopID($date, $loopID);
 }
 ?>
+
 <?php
 require '../themepart/resources.php';
 require '../themepart/sidebar.php';
 require '../themepart/pageContentHolder.php';
 ?>
 
-
 <HTML LANG="EN">
 
-<HEAD>
+<HEAD><title></title></HEAD>
 
-
-</HEAD>
-
-<form method=post>
-
-</form>
-
-
-
+<form method=post></form>
 
 <body>
 <div class="d-flex justify-content-center">
@@ -83,7 +62,7 @@ require '../themepart/pageContentHolder.php';
                     <option selected="selected">Select a Loop</option>
                     <?php
                     foreach ($loopDropdown as $loop) { ?>
-                        <option name="loop" value="<?= $loop->id ?>"><?= $loop->loops ?>
+                        <option name="loop" value="<?= $loop->id ?>"><?= $loop->loopName ?>
                         </option>
                     <?php
                     } ?>
